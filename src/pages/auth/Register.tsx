@@ -4,17 +4,56 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
+import { AuthError, AuthApiError } from '@supabase/supabase-js';
 
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [accountType, setAccountType] = useState<'player' | 'coach'>('player');
+  const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters long';
+    }
+    return null;
+  };
+
+  const getErrorMessage = (error: AuthError) => {
+    if (error instanceof AuthApiError) {
+      switch (error.status) {
+        case 422:
+          if (error.message.includes('weak_password')) {
+            return 'Password is too weak. It should be at least 6 characters long.';
+          }
+          return 'Invalid email format or weak password.';
+        case 400:
+          return 'Invalid registration details. Please check your information.';
+        default:
+          return error.message;
+      }
+    }
+    return 'An unexpected error occurred. Please try again.';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      toast({
+        title: 'Validation Error',
+        description: passwordError,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
     try {
       await signUp(email, password);
       toast({
@@ -23,11 +62,14 @@ export default function Register() {
       });
       navigate('/auth/login');
     } catch (error) {
+      const message = getErrorMessage(error as AuthError);
       toast({
         title: 'Error',
-        description: 'Failed to create account. Please try again.',
+        description: message,
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -56,6 +98,7 @@ export default function Register() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1"
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -69,7 +112,11 @@ export default function Register() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1"
+                disabled={isLoading}
               />
+              <p className="mt-1 text-sm text-gray-500">
+                Password must be at least 6 characters long
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Account Type</label>
@@ -81,6 +128,7 @@ export default function Register() {
                     checked={accountType === 'player'}
                     onChange={(e) => setAccountType(e.target.value as 'player')}
                     className="form-radio"
+                    disabled={isLoading}
                   />
                   <span className="ml-2">Player</span>
                 </label>
@@ -91,14 +139,15 @@ export default function Register() {
                     checked={accountType === 'coach'}
                     onChange={(e) => setAccountType(e.target.value as 'coach')}
                     className="form-radio"
+                    disabled={isLoading}
                   />
                   <span className="ml-2">Coach</span>
                 </label>
               </div>
             </div>
           </div>
-          <Button type="submit" className="w-full">
-            Create account
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Creating account...' : 'Create account'}
           </Button>
         </form>
       </div>
