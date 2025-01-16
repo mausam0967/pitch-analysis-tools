@@ -45,12 +45,21 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!email || !password) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const passwordError = validatePassword(password);
     if (passwordError) {
       toast({
-        title: 'Validation Error',
+        title: "Validation Error",
         description: passwordError,
-        variant: 'destructive',
+        variant: "destructive",
       });
       return;
     }
@@ -60,16 +69,16 @@ export default function Register() {
     try {
       await signUp(email, password);
       toast({
-        title: 'Success',
-        description: 'Registration successful! Please check your email to verify your account.',
+        title: "Success",
+        description: "Registration successful! Please check your email to verify your account.",
       });
       navigate('/auth/login');
     } catch (error) {
       const message = getErrorMessage(error as AuthError);
       toast({
-        title: 'Registration Failed',
+        title: "Registration Failed",
         description: message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);

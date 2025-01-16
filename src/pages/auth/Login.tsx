@@ -19,11 +19,9 @@ export default function Login() {
       switch (error.status) {
         case 400:
           if (error.message.includes('Invalid login credentials')) {
-            return 'The email or password you entered is incorrect. Please try again.';
+            return 'Invalid email or password. Please check your credentials and try again.';
           }
-          return 'Invalid email or password. Please check your credentials.';
-        case 422:
-          return 'Invalid email format.';
+          return 'Invalid email or password format.';
         case 429:
           return 'Too many login attempts. Please try again later.';
         default:
@@ -38,7 +36,7 @@ export default function Login() {
     
     if (!email || !password) {
       toast({
-        title: "Error",
+        title: "Validation Error",
         description: "Please fill in all fields",
         variant: "destructive",
       });
