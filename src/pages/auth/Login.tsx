@@ -18,10 +18,7 @@ export default function Login() {
     if (error instanceof AuthApiError) {
       switch (error.status) {
         case 400:
-          if (error.message.includes('Invalid login credentials')) {
-            return 'Invalid email or password. Please check your credentials and try again.';
-          }
-          return 'Invalid email or password format.';
+          return 'The email or password you entered is incorrect. Please try again, or sign up if you don\'t have an account.';
         case 429:
           return 'Too many login attempts. Please try again later.';
         default:
@@ -36,8 +33,8 @@ export default function Login() {
     
     if (!email || !password) {
       toast({
-        title: "Validation Error",
-        description: "Please fill in all fields",
+        title: "Missing Information",
+        description: "Please enter both email and password",
         variant: "destructive",
       });
       return;
