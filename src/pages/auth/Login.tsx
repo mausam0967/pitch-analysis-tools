@@ -18,9 +18,14 @@ export default function Login() {
     if (error instanceof AuthApiError) {
       switch (error.status) {
         case 400:
+          if (error.message.includes('Invalid login credentials')) {
+            return 'The email or password you entered is incorrect. Please try again.';
+          }
           return 'Invalid email or password. Please check your credentials.';
         case 422:
           return 'Invalid email format.';
+        case 429:
+          return 'Too many login attempts. Please try again later.';
         default:
           return error.message;
       }
@@ -30,6 +35,16 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -38,9 +53,9 @@ export default function Login() {
     } catch (error) {
       const message = getErrorMessage(error as AuthError);
       toast({
-        title: 'Error',
+        title: "Login Failed",
         description: message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -73,6 +88,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1"
                 disabled={isLoading}
+                placeholder="Enter your email"
               />
             </div>
             <div>
@@ -87,6 +103,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1"
                 disabled={isLoading}
+                placeholder="Enter your password"
               />
             </div>
           </div>
