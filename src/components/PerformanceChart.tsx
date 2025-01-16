@@ -13,11 +13,24 @@ export const PerformanceChart = () => {
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="match" />
-          <YAxis />
-          <Tooltip />
-          <Line type="monotone" dataKey="performance" stroke="#4a6fa5" strokeWidth={2} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#2A2F3C" />
+          <XAxis dataKey="match" stroke="#6B7280" />
+          <YAxis stroke="#6B7280" />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: '#1A1F2C',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff'
+            }}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="performance" 
+            stroke="#3B82F6" 
+            strokeWidth={2}
+            dot={{ fill: '#3B82F6', strokeWidth: 2 }}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>
