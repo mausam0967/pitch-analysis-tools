@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { AuthError, AuthApiError } from '@supabase/supabase-js';
 
 export default function Register() {
@@ -26,6 +26,9 @@ export default function Register() {
     if (error instanceof AuthApiError) {
       switch (error.status) {
         case 422:
+          if (error.message.includes('User already registered')) {
+            return 'This email is already registered. Please try logging in instead.';
+          }
           if (error.message.includes('weak_password')) {
             return 'Password is too weak. It should be at least 6 characters long.';
           }
@@ -64,7 +67,7 @@ export default function Register() {
     } catch (error) {
       const message = getErrorMessage(error as AuthError);
       toast({
-        title: 'Error',
+        title: 'Registration Failed',
         description: message,
         variant: 'destructive',
       });
@@ -99,6 +102,7 @@ export default function Register() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1"
                 disabled={isLoading}
+                placeholder="Enter your email"
               />
             </div>
             <div>
@@ -113,6 +117,7 @@ export default function Register() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1"
                 disabled={isLoading}
+                placeholder="Enter your password"
               />
               <p className="mt-1 text-sm text-gray-500">
                 Password must be at least 6 characters long
