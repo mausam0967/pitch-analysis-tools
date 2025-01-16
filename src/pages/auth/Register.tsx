@@ -29,9 +29,6 @@ export default function Register() {
           if (error.message.includes('User already registered')) {
             return 'This email is already registered. Please try logging in instead.';
           }
-          if (error.message.includes('weak_password')) {
-            return 'Password is too weak. It should be at least 6 characters long.';
-          }
           return 'Invalid email format or weak password.';
         case 400:
           return 'Invalid registration details. Please check your information.';
@@ -47,8 +44,8 @@ export default function Register() {
     
     if (!email || !password) {
       toast({
-        title: "Validation Error",
-        description: "Please fill in all fields",
+        title: "Missing Information",
+        description: "Please enter both email and password",
         variant: "destructive",
       });
       return;
@@ -57,7 +54,7 @@ export default function Register() {
     const passwordError = validatePassword(password);
     if (passwordError) {
       toast({
-        title: "Validation Error",
+        title: "Invalid Password",
         description: passwordError,
         variant: "destructive",
       });
@@ -80,6 +77,13 @@ export default function Register() {
         description: message,
         variant: "destructive",
       });
+      
+      // If user already exists, redirect to login page after a short delay
+      if (error instanceof AuthApiError && error.status === 422) {
+        setTimeout(() => {
+          navigate('/auth/login');
+        }, 2000);
+      }
     } finally {
       setIsLoading(false);
     }
