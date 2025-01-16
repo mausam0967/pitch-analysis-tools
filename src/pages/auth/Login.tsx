@@ -4,25 +4,46 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
+import { AuthError, AuthApiError } from '@supabase/supabase-js';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const getErrorMessage = (error: AuthError) => {
+    if (error instanceof AuthApiError) {
+      switch (error.status) {
+        case 400:
+          return 'Invalid email or password. Please check your credentials.';
+        case 422:
+          return 'Invalid email format.';
+        default:
+          return error.message;
+      }
+    }
+    return 'An unexpected error occurred. Please try again.';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    
     try {
       await signIn(email, password);
       navigate('/dashboard');
     } catch (error) {
+      const message = getErrorMessage(error as AuthError);
       toast({
         title: 'Error',
-        description: 'Failed to sign in. Please check your credentials.',
+        description: message,
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -51,6 +72,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1"
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -64,11 +86,12 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1"
+                disabled={isLoading}
               />
             </div>
           </div>
-          <Button type="submit" className="w-full">
-            Sign in
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Signing in...' : 'Sign in'}
           </Button>
         </form>
       </div>
