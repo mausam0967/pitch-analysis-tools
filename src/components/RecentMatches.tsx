@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 type Match = {
   id: string;
@@ -25,15 +26,23 @@ export const RecentMatches = () => {
   useEffect(() => {
     const fetchFootballMatches = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('fetch-football-matches');
+        const { data, error } = await supabase.functions.invoke('fetch-football-matches', {
+          method: 'POST',
+          body: {},
+        });
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching football matches:', error);
+          toast.error('Failed to fetch matches');
+          throw error;
+        }
         
         // Take only the first 5 matches from the response
         const recentMatches = data.matches?.slice(0, 5) || [];
         setMatches(recentMatches);
       } catch (error) {
         console.error('Error fetching football matches:', error);
+        toast.error('Failed to fetch matches');
       } finally {
         setIsLoading(false);
       }
