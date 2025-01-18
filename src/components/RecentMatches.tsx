@@ -1,42 +1,138 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const matches = [
-  { date: "2024-02-20", home: "Team A", away: "Team B", score: "2-1", result: "W" },
-  { date: "2024-02-15", home: "Team C", away: "Team A", score: "0-2", result: "W" },
-  { date: "2024-02-10", home: "Team A", away: "Team D", score: "1-1", result: "D" },
-];
+type Match = {
+  id: string;
+  match_date: string;
+  home_team: string;
+  away_team: string;
+  home_score: number;
+  away_score: number;
+};
 
 export const RecentMatches = () => {
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Fetch initial matches
+    const fetchMatches = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('matches')
+          .select('*')
+          .order('match_date', { ascending: false })
+          .limit(5);
+
+        if (error) throw error;
+        setMatches(data || []);
+      } catch (error) {
+        console.error('Error fetching matches:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMatches();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches'
+        },
+        async (payload) => {
+          // Refetch matches when any change occurs
+          const { data } = await supabase
+            .from('matches')
+            .select('*')
+            .order('match_date', { ascending: false })
+            .limit(5);
+          
+          setMatches(data || []);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const getMatchResult = (homeScore: number, awayScore: number) => {
+    if (homeScore > awayScore) return "W";
+    if (homeScore < awayScore) return "L";
+    return "D";
+  };
+
+  if (isLoading) {
+    return (
+      <CardContent>
+        <div className="space-y-4">
+          {[...Array(3)].map((_, index) => (
+            <div key={index} className="flex items-center justify-between p-4 bg-[#1A1F2C] rounded-lg">
+              <Skeleton className="h-4 w-[200px]" />
+              <Skeleton className="h-4 w-[100px]" />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    );
+  }
+
   return (
     <CardContent>
       <div className="space-y-4">
-        {matches.map((match, index) => (
-          <div
-            key={index}
-            className="flex items-center justify-between p-4 bg-[#1A1F2C] rounded-lg hover:bg-[#2A2F3C] transition-colors"
-          >
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-400">{match.date}</span>
-              <span className="font-medium text-white">
-                {match.home} vs {match.away}
-              </span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="font-bold text-white">{match.score}</span>
-              <span
-                className={`px-2 py-1 rounded text-xs font-bold ${
-                  match.result === "W"
-                    ? "bg-green-500/20 text-green-400"
-                    : match.result === "L"
-                    ? "bg-red-500/20 text-red-400"
-                    : "bg-gray-500/20 text-gray-400"
-                }`}
-              >
-                {match.result}
-              </span>
-            </div>
+        {matches.length === 0 ? (
+          <div className="text-center text-gray-400 py-4">
+            No matches found. Add your first match!
           </div>
-        ))}
+        ) : (
+          matches.map((match) => {
+            const result = getMatchResult(match.home_score, match.away_score);
+            return (
+              <div
+                key={match.id}
+                className="flex items-center justify-between p-4 bg-[#1A1F2C] rounded-lg hover:bg-[#2A2F3C] transition-colors"
+              >
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-400">
+                    {new Date(match.match_date).toLocaleDateString()}
+                  </span>
+                  <span className="font-medium text-white">
+                    {match.home_team} vs {match.away_team}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <span className="font-bold text-white">
+                    {match.home_score}-{match.away_score}
+                  </span>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-bold ${
+                      result === "W"
+                        ? "bg-green-500/20 text-green-400"
+                        : result === "L"
+                        ? "bg-red-500/20 text-red-400"
+                        : "bg-gray-500/20 text-gray-400"
+                    }`}
+                  >
+                    {result}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </CardContent>
   );
