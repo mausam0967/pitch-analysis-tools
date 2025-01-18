@@ -6,11 +6,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 type Match = {
   id: string;
-  match_date: string;
-  home_team: string;
-  away_team: string;
-  home_score: number;
-  away_score: number;
+  homeTeam: { name: string };
+  awayTeam: { name: string };
+  score: {
+    fullTime: {
+      home: number;
+      away: number;
+    };
+  };
+  utcDate: string;
 };
 
 export const RecentMatches = () => {
@@ -19,55 +23,24 @@ export const RecentMatches = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (!user) return;
-
-    // Fetch initial matches
-    const fetchMatches = async () => {
+    const fetchFootballMatches = async () => {
       try {
-        const { data, error } = await supabase
-          .from('matches')
-          .select('*')
-          .order('match_date', { ascending: false })
-          .limit(5);
-
+        const { data, error } = await supabase.functions.invoke('fetch-football-matches');
+        
         if (error) throw error;
-        setMatches(data || []);
+        
+        // Take only the first 5 matches from the response
+        const recentMatches = data.matches?.slice(0, 5) || [];
+        setMatches(recentMatches);
       } catch (error) {
-        console.error('Error fetching matches:', error);
+        console.error('Error fetching football matches:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchMatches();
-
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'matches'
-        },
-        async (payload) => {
-          // Refetch matches when any change occurs
-          const { data } = await supabase
-            .from('matches')
-            .select('*')
-            .order('match_date', { ascending: false })
-            .limit(5);
-          
-          setMatches(data || []);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
+    fetchFootballMatches();
+  }, []);
 
   const getMatchResult = (homeScore: number, awayScore: number) => {
     if (homeScore > awayScore) return "W";
@@ -95,11 +68,14 @@ export const RecentMatches = () => {
       <div className="space-y-4">
         {matches.length === 0 ? (
           <div className="text-center text-gray-400 py-4">
-            No matches found. Add your first match!
+            No matches found
           </div>
         ) : (
           matches.map((match) => {
-            const result = getMatchResult(match.home_score, match.away_score);
+            const homeScore = match.score.fullTime.home;
+            const awayScore = match.score.fullTime.away;
+            const result = getMatchResult(homeScore, awayScore);
+            
             return (
               <div
                 key={match.id}
@@ -107,15 +83,15 @@ export const RecentMatches = () => {
               >
                 <div className="flex items-center space-x-4">
                   <span className="text-sm text-gray-400">
-                    {new Date(match.match_date).toLocaleDateString()}
+                    {new Date(match.utcDate).toLocaleDateString()}
                   </span>
                   <span className="font-medium text-white">
-                    {match.home_team} vs {match.away_team}
+                    {match.homeTeam.name} vs {match.awayTeam.name}
                   </span>
                 </div>
                 <div className="flex items-center space-x-4">
                   <span className="font-bold text-white">
-                    {match.home_score}-{match.away_score}
+                    {homeScore}-{awayScore}
                   </span>
                   <span
                     className={`px-2 py-1 rounded text-xs font-bold ${

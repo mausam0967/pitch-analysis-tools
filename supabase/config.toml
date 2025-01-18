@@ -1,1 +1,3 @@
 project_id = "kekydhiegdtomsmgnspi"
+[functions.fetch-football-matches]
+verify_jwt = false
