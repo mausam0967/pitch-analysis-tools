@@ -1,4 +1,4 @@
-import { serve } from 'https://deno.fresh.run/std@0.168.0/http/server.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,8 +30,12 @@ serve(async (req) => {
       }
     )
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
     const data = await response.json()
-    console.log('Fetched football matches:', data)
+    console.log('Successfully fetched football matches')
 
     return new Response(
       JSON.stringify(data),
