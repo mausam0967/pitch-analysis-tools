@@ -18,7 +18,7 @@ export default function Login() {
     if (error instanceof AuthApiError) {
       switch (error.status) {
         case 400:
-          return 'The email or password you entered is incorrect. Please try again, or sign up if you don\'t have an account.';
+          return 'Invalid email or password. Please check your credentials and try again.';
         case 429:
           return 'Too many login attempts. Please try again later.';
         default:
@@ -46,6 +46,7 @@ export default function Login() {
       await signIn(email, password);
       navigate('/dashboard');
     } catch (error) {
+      console.error('Login error:', error);
       const message = getErrorMessage(error as AuthError);
       toast({
         title: "Login Failed",
